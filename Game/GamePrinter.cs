@@ -7,29 +7,33 @@ namespace MiniDarkSouls3
 {
     public class GamePrinter
     {
+        public GameManager gameManager = new GameManager();
         public Player player;
+        public Enemy enemy;
 
         public void PrintGameStatus(Player player)
         {
-            Console.WriteLine($"{player} is in {player.currentPosition}\nHP: {player.currentHealth}/{player.maxHealthPoints}");
-            Console.WriteLine($"Amount of SOULS: {player.amountOfSouls}");
-            Console.WriteLine($"Strenght: {player.strenght}");
-            if (player.currentPosition is BonFire)
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Thread.Sleep(750);
-                Console.WriteLine("\t\\[T]/");
-                Thread.Sleep(1000);
-                Console.ResetColor();
-                Console.WriteLine($"PRAISE THE SUN! {player} is BONFIRE");
-            }
+            Console.WriteLine(player.StringOfPosition());
+            Console.WriteLine(player.GetStats());
+            gameManager.CheckForLoot(player);
+            LootNotification(player);
+            
+            
+            
             if (player.equippedItem != null)
             {
                 Console.WriteLine($"Eqipped Item: {player.equippedItem}");
             }
-            if (player.currentPosition.itemsOnField.Count >= 0)
+            if (player.hasFoundEnemy)
             {
+                Console.WriteLine($"{player.currentPosition.enemy} wants to fight {player} in {player.currentPosition} ");
+            }
+        }
 
+        public void LootNotification(Player player)
+        {
+            if (player.hasFoundLoot)
+            {
                 foreach (Item item in player.currentPosition.itemsOnField)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
@@ -39,12 +43,7 @@ namespace MiniDarkSouls3
                     Console.ResetColor();
                     Console.WriteLine($"Here lies {item}");
                     Console.WriteLine(item.pic);
-
                 }
-            }
-            if (player.hasFoundEnemy)
-            {
-                Console.WriteLine($"{player.currentPosition.enemy} is attacking {player} in {player.currentPosition} ");
             }
         }
 
@@ -52,7 +51,7 @@ namespace MiniDarkSouls3
         {
             if (player.isFighting)
             {
-                Console.WriteLine($"{player} is fighting {player.currentPosition.enemy} in {player.currentPosition}");
+                Console.WriteLine($"{player} VS {player.currentPosition.enemy} in {player.currentPosition}");
                 switch (player.currentPosition.enemy.hasHitPlayer)
                 {
                     case true:
@@ -62,7 +61,7 @@ namespace MiniDarkSouls3
                         Console.WriteLine($"{player} has {player.currentHealth}/{player.maxHealthPoints} HP");
                         break;
                     case false:
-                        Console.WriteLine($"Blocked {player.currentPosition.enemy} Attack by {player}");
+                        Console.WriteLine($"{player} Blocked {player.currentPosition.enemy}´s Attack");
                         break;
                 }
                 switch (player.hasHitEnemy)
@@ -79,24 +78,72 @@ namespace MiniDarkSouls3
                         Console.WriteLine($"{player.currentPosition.enemy} blocked {player}´s Attack");
                         break;
                 }
-                if (player.currentPosition.enemy.currentHealthPoints <= 0)
-                {
-                    
-                    player.hasFoundEnemy = false;
-                    player.isFighting = false;
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Thread.Sleep(750);
-                    Console.WriteLine("\t\\[T]/");
-                    Thread.Sleep(1000);
-                    Console.ResetColor();
-                    Console.WriteLine($"{player} has defeated {player.currentPosition.enemy}");
-                    Console.WriteLine($"{player.currentPosition.enemy.droppedSouls} SOULS GAINED from this fight");
-                    player.currentPosition.enemy = null;
+                EndOfFight(player);
 
-                }
+             
             }
         }
 
+        public void EndOfFight(Player player)
+        {
+            Enemy enemy = player.currentPosition.enemy;
+            if (enemy.currentHealthPoints <= 0)
+            {
+                player.hasFoundEnemy = false;
+                player.isFighting = false;
+                Console.ForegroundColor = ConsoleColor.Green;
+                Thread.Sleep(750);
+                Console.WriteLine("\t\\[T]/");
+                Thread.Sleep(1000);
+                Console.ResetColor();
+                Console.WriteLine($"{player} has defeated {enemy}");
+                enemy.DropItem(player);                                  
+                enemy.DropSouls(player);
+                gameManager.CheckForLoot(player);
+                Console.WriteLine($"{enemy.droppedSouls} SOULS GAINED");
+                player.currentPosition.enemy = null;
+                gameManager.CheckForLoot(player);
+                LootNotification(player);
+                
+            }
+        }
+
+        public void PrintInventory(Player player)
+        {
+            Console.WriteLine("------------------------------------------");
+            Console.WriteLine("\t ITEMS IN INVENTORY");
+            Console.WriteLine(player.GetStats());
+            Console.WriteLine();
+
+            if (player.backPack.Count <= 0)
+            {
+
+                Console.WriteLine($"{player} HAS NO ITEMS");
+            }
+            else
+            {
+
+                foreach (var item in player.backPack)
+                {
+
+                    if (item is Weapon)
+                    {
+                        Console.WriteLine($"{player.backPack.IndexOf(item) + 1} {item} --> Attack Rating: {(item as Weapon).damage} + {player.strenght}");
+                    }
+                    else if (item is HealthRegen)
+                    {
+                        Console.WriteLine($"{player.backPack.IndexOf(item) + 1} {item}  --> Health Gain: {(item as HealthRegen).healthGain}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{player.backPack.IndexOf(item) + 1} {item}");
+                    }
+                }
+                player.UseItemFromInventory();
+
+            }
+            Console.WriteLine("---------------------------------------");
+        }
 
         public void PrintMap(Player player)
         {
@@ -119,7 +166,7 @@ namespace MiniDarkSouls3
             //}
             if (player.currentPosition.south != null)
             {
-                Console.WriteLine($"\tUP IS {player.currentPosition.south}");
+                Console.WriteLine($"\tDOWN IS {player.currentPosition.south}");
             }
             //else
             //{
@@ -127,7 +174,7 @@ namespace MiniDarkSouls3
             //}
             if (player.currentPosition.north != null)
             {
-                Console.WriteLine($"\tDOWN IS {player.currentPosition.north}");
+                Console.WriteLine($"\tUP IS {player.currentPosition.north}");
             }
             Console.WriteLine();
             //else

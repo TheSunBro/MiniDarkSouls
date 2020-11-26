@@ -8,7 +8,7 @@ namespace MiniDarkSouls3
     {
         public Zombie (string name, int healthPoints, int attackRating) : base(name, healthPoints, attackRating)
         {
-            this.droppedSouls = 200;
+            this.droppedSouls = 500;
         }
         public override void DropItem(Player player)
         {
@@ -36,19 +36,19 @@ namespace MiniDarkSouls3
 
         public override void Fight(Player player)
         {
-            if (GetHitDetection())
+            GetHitDetection();
+            if (hasHitPlayer)
             {
                 this.hasHitPlayer = true;
                 player.currentHealth -= this.attackRating;
             }
-            else
-            {
-                this.hasHitPlayer = false;
-            }
+
             if (player.currentHealth <= 0)
             {
                 player.isAlive = false;
             }
+            DropSouls(player);
+            DropItem(player);
         }
 
         public override bool GetHitDetection()

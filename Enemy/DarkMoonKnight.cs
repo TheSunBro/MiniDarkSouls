@@ -13,11 +13,14 @@ namespace MiniDarkSouls3
 
         public override void DropItem(Player player)
         {
-            Random random = new Random();
-            int randomNumber = random.Next(0, 5);
-            if (randomNumber == 0 && currentHealthPoints <= 0)
+            if (currentHealthPoints <= 0)
             {
-                player.currentPosition.itemsOnField.Add(new Sword("DARK MOON GREATSWORD", 15));
+                Random random = new Random();
+                int randomNumber = random.Next(0, 5);
+                if (randomNumber == 0 && currentHealthPoints <= 0)
+                {
+                    player.currentPosition.itemsOnField.Add(new Sword("DARK MOON GREATSWORD", 15));
+                }
             }
         }
 
@@ -33,20 +36,19 @@ namespace MiniDarkSouls3
 
         public override void Fight(Player player)
         {
-            int extraDamage = 5;
-            if (GetHitDetection())
+            GetHitDetection();
+            if (hasHitPlayer)
             {
                 this.hasHitPlayer = true;
-                player.currentHealth -= this.attackRating + extraDamage;
+                player.currentHealth -= this.attackRating;
             }
-            else
-            {
-                this.hasHitPlayer = false;
-            }
+
             if (player.currentHealth <= 0)
             {
                 player.isAlive = false;
             }
+            DropSouls(player);
+            DropItem(player);
         }
 
         public override bool GetHitDetection()
@@ -55,9 +57,9 @@ namespace MiniDarkSouls3
             int randomNumber = random.Next(0, 2);
             if (randomNumber == 0)
             {
-                return true;
+                return hasHitPlayer = true; 
             }
-            return false;
+            return hasHitPlayer = false; 
         }
     }
 }

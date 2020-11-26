@@ -18,6 +18,16 @@ namespace MiniDarkSouls3
             
         }
 
+        public bool CheckForLoot(Player player)
+        {
+            if (player.currentPosition.itemsOnField.Count >= 0)
+            {
+                return player.hasFoundLoot = true;
+            }
+            return false;
+        }
+
+
         public void ClearEnemy(Player player)
         {
  
@@ -25,12 +35,14 @@ namespace MiniDarkSouls3
         }
         public void PlayerControl()
         {
+            GameManager gameManager = new GameManager();
             GamePrinter gamePrinter = new GamePrinter();
             gamePrinter.PrintGameStatus(player);
             //string move = "[W] MOVE UP\n[S] MOVE DOWN\n[A] MOVE LEFT\n[D] MOVE RIGHT";
             //string action = "[I] CHECK INVENTORY\n[P] PICK UP ITEM\n[M] SHOW MAP\n[F] FIGHT";
             while (isRunning)
             {
+
                 Console.ForegroundColor = ConsoleColor.DarkCyan;
                 Thread.Sleep(500);
                 Console.WriteLine("________________________________________");
@@ -68,7 +80,7 @@ namespace MiniDarkSouls3
                         break;
                     case "i":
                         Thread.Sleep(300);
-                        player.PrintInventory();
+                        gamePrinter.PrintInventory(player);
                         Thread.Sleep(1000);
                         gamePrinter.PrintGameStatus(player);
                         break;

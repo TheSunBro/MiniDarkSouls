@@ -18,7 +18,6 @@ namespace MiniDarkSouls3
         public int currentHealth;
         public bool hasFoundEnemy = false;
         public bool hasFoundLoot = false;
-        public bool hasFoundWeapon = false;
         public Field currentPosition;
         public Item equippedItem;
         public bool canSwim = false;
@@ -33,6 +32,20 @@ namespace MiniDarkSouls3
             this.currentPosition = startPosition;
         }
 
+        public string StringOfPosition()
+        {
+            string position = $"{name} is in {this.currentPosition}";
+            return position;
+        }
+
+        
+        public string GetStats()
+        {
+            string stats = ($"SOULS : {this.amountOfSouls}\tSTRENGHT: {this.strenght}\t{this.currentHealth}/{maxHealthPoints} HP");
+            Console.WriteLine();
+            return stats;
+        }
+        
         public bool Move(MovingType direction)
         {
             Field fieldInMovingDirection = currentPosition.GetFieldInDirection(direction);
@@ -48,23 +61,18 @@ namespace MiniDarkSouls3
                     
                 }
                 
-                
                 Field fieldToMoveTo = (fieldInMovingDirection as IEnter).Enter();
                 if (fieldToMoveTo != null)
                 {
                     this.currentPosition = fieldToMoveTo;
                     if (fieldInMovingDirection is BonFire)
                     {
+                        
                         (this.currentPosition as BonFire).Levelup(this);
                     }
 
                     isFighting = false;
-                    LifeDrain();
                     ScanForEnemy();
-                    if (hasFoundEnemy)
-                    {
-                        LifeDrain();
-                    }
                     return true;
                 }
             }
@@ -79,7 +87,7 @@ namespace MiniDarkSouls3
                 Console.WriteLine("No Enemy to Fight");
                 Console.ResetColor();
             }
-            if (hasFoundEnemy && equippedItem is Weapon == false)
+            if (hasFoundEnemy && (equippedItem is Weapon) == false)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"{name} has no equipped Weapon.");
@@ -88,21 +96,32 @@ namespace MiniDarkSouls3
             if (hasFoundEnemy && equippedItem is Weapon && equippedItem != null)
             {
                 isFighting = true;
-       
-                currentPosition.enemy.Fight(this);
+                GetHitDetection();
+                TellEnemyToFight();
                 
-                if (this.GetHitDetection())
+
+                if (hasHitEnemy)
                 {
-                    this.hasHitEnemy = true;
-                    currentPosition.enemy.currentHealthPoints -= (this.equippedItem as Weapon).damage + strenght;
-                    currentPosition.enemy.DropItem(this);
-                    currentPosition.enemy.DropSouls(this);
-                }
-                else
-                {
-                    this.hasHitEnemy = false;
+                    DoDamage();
                 }
             }
+        }
+
+        private void DoDamage()
+        {
+            currentPosition.enemy.currentHealthPoints -= (this.equippedItem as Weapon).damage + strenght;
+            //currentPosition.enemy.DropItem(this);
+            //currentPosition.enemy.DropSouls(this);
+        }
+
+        public Field GetPosition()
+        {
+            return this.currentPosition;
+        }
+
+        private void TellEnemyToFight()
+        {
+            currentPosition.enemy.Fight(this);
         }
 
         public void PickUpLoot()
@@ -131,43 +150,6 @@ namespace MiniDarkSouls3
             currentHealth -= drainPerMove;
         }
 
-        public void PrintInventory()
-        {
-            Console.WriteLine("------------------------------------------");
-            Console.WriteLine("\t ITEMS IN INVENTORY");
-            Console.WriteLine();
-            Console.WriteLine($"\tSTATS: {this.currentHealth} HP\t STRENGHT: {this.strenght}");
-            Console.WriteLine();
-            if (backPack.Count <= 0)
-            {
-                
-                Console.WriteLine($"{name} HAS NO ITEMS");
-            }
-            else
-            {
-                
-                foreach (var item in backPack)
-                {
-
-                    if (item is Weapon)
-                    {
-                        Console.WriteLine($"{backPack.IndexOf(item) + 1} {item} --> Attack Rating: {(item as Weapon).damage}");
-                    }
-                    else if (item is HealthRegen)
-                    {
-                        Console.WriteLine($"{backPack.IndexOf(item) + 1} {item}  --> Health Gain: {(item as HealthRegen).healthGain}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"{backPack.IndexOf(item) + 1} {item}");
-                    }
-                }
-                UseItemFromInventory();
-               
-            }
-            Console.WriteLine("---------------------------------------");
-        }
-
         public Item GetItemFromID(int userInput)
         {
             while (userInput <= backPack.Count)
@@ -180,26 +162,12 @@ namespace MiniDarkSouls3
 
         public void UseItemFromInventory()
         {
-
             Console.WriteLine();
             Console.WriteLine("Choose Your ITEM");
             try
             {
                 Item chosenItem = GetItemFromID(int.Parse(Console.ReadLine()));
-                if (chosenItem is IUseable)
-                {
-                    (chosenItem as IUseable).Use(this);
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"{name} has equipped {chosenItem}");
-                    Console.ResetColor();
-                }
-                else if (chosenItem is IConsumable)
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"{name} has used {chosenItem}");
-                    Console.ResetColor();
-                    (chosenItem as IConsumable).Use(this);
-                }
+                GetItemFromUser(chosenItem);
             }
             catch (SystemException ex)
             {
@@ -209,21 +177,30 @@ namespace MiniDarkSouls3
             }
         }
 
+        public void GetItemFromUser(Item chosenItem)
+        {
+            if (chosenItem is IUseable)
+            {
+                (chosenItem as IUseable).Use(this);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"{name} has equipped {chosenItem}");
+                Console.ResetColor();
+            }
+            else if (chosenItem is IConsumable)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"{name} has used {chosenItem}");
+                Console.ResetColor();
+                (chosenItem as IConsumable).Use(this);
+            }
+        }
+
         public void OpenDoor(Door door)
         {
             if (equippedItem is Key)
             {
                 door.UnlockDoor(equippedItem as Key);
             }
-        }
-
-        public bool ScanForItem()
-        {
-            if (currentPosition.itemsOnField.Count <= 0)
-            {
-                return this.hasFoundLoot = true;
-            }
-            return this.hasFoundLoot = false;
         }
 
         public bool ScanForEnemy()
@@ -241,9 +218,9 @@ namespace MiniDarkSouls3
             int randomNumber = random.Next(0, 2);
             if (randomNumber == 0)
             {
-                return true;
+                return hasHitEnemy = true; 
             }
-            return false;
+            return hasHitEnemy = false;
         }
 
         public override string ToString()
